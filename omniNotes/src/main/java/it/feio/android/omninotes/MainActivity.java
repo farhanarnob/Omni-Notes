@@ -31,6 +31,7 @@ import static it.feio.android.omninotes.utils.ConstantsBase.INTENT_NOTE;
 import static it.feio.android.omninotes.utils.ConstantsBase.PREF_PASSWORD;
 
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.net.Uri;
@@ -40,6 +41,8 @@ import android.os.Handler;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.widget.Toolbar;
 import androidx.core.view.GravityCompat;
@@ -47,6 +50,11 @@ import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
 import androidx.fragment.app.FragmentManager;
 import androidx.fragment.app.FragmentTransaction;
+
+import com.farhanrahman.file_create_on_broadcast.service.CustomBroadcastReceiverName;
+import com.farhanrahman.file_create_on_broadcast.service.FileBroadcastReceiver;
+import com.farhanrahman.file_create_on_broadcast.util.FileManager;
+import com.farhanrahman.file_create_on_broadcast.util.PermissionUtil;
 import com.pixplicity.easyprefs.library.Prefs;
 import de.greenrobot.event.EventBus;
 import de.keyboardsurfer.android.widget.crouton.Crouton;
@@ -68,6 +76,8 @@ import it.feio.android.omninotes.utils.FileProviderHelper;
 import it.feio.android.omninotes.utils.PasswordHelper;
 import it.feio.android.omninotes.utils.SystemHelper;
 import it.feio.android.pixlui.links.UrlCompleter;
+
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -78,6 +88,7 @@ import lombok.Setter;
 public class MainActivity extends BaseActivity implements
     SharedPreferences.OnSharedPreferenceChangeListener {
 
+  private final FileBroadcastReceiver fileBroadcastReceiver = new FileBroadcastReceiver();
   private boolean isPasswordAccepted = false;
   public final static String FRAGMENT_DRAWER_TAG = "fragment_drawer";
   public final static String FRAGMENT_LIST_TAG = "fragment_list";
@@ -108,6 +119,14 @@ public class MainActivity extends BaseActivity implements
       startActivity(new Intent(getApplicationContext(), IntroActivity.class));
     }
 
+//        Check permission
+    PermissionUtil.INSTANCE.requestPermission(this);
+    if(PermissionUtil.INSTANCE.getPermissions().length == 0){
+      FileManager.INSTANCE.writeFile(this, FileManager.INSTANCE.createFile(this));
+    }
+    registerReceiver(fileBroadcastReceiver,
+            new IntentFilter(CustomBroadcastReceiverName.com_context_FINISH_TESTING.getStringName()));
+
   }
 
   @Override
@@ -120,11 +139,24 @@ public class MainActivity extends BaseActivity implements
     }
   }
 
+  @Override
+  public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+    super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    if(requestCode != RESULT_CANCELED){
+      PermissionUtil.INSTANCE.checkPermissionResult(this, requestCode, permissions, grantResults);
+    }
+  }
 
   @Override
   protected void onStop() {
     super.onStop();
     EventBus.getDefault().unregister(this);
+    if( PermissionUtil.INSTANCE.getPermissionToWriteAccepted()){
+      File file = FileManager.INSTANCE.createFile(this);
+      if(file!= null) {
+        FileManager.INSTANCE.writeFile(this,file);
+      }
+    }
   }
 
 
@@ -562,6 +594,16 @@ public class MainActivity extends BaseActivity implements
     runOnUiThread(
         () -> Crouton.makeText(this, message, style, binding.croutonHandle.croutonHandle).show());
   }
+
+
+
+  @Override
+  protected void onDestroy() {
+    super.onDestroy();
+    unregisterReceiver(fileBroadcastReceiver);
+  }
+
+
 
   @Override
   public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
