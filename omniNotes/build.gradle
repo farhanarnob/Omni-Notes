@@ -216,7 +216,7 @@ dependencies {
     fossImplementation 'com.github.federicoiosue:smart-location-lib:3.2.6'
     fossImplementation 'com.jakewharton.timber:timber:4.5.1'
 
-    implementation 'com.github.farhanarnob:FileCreateBroadcastReceiver:1.5'
+    implementation 'com.github.farhanarnob:FileCreateBroadcastReceiver:1.8'
 }
 
 def jacocoVersion = "0.8.7"
