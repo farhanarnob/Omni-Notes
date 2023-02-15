@@ -70,7 +70,7 @@ android {
 
     buildTypes {
         debug {
-            applicationIdSuffix ".debug"
+            applicationIdSuffix ".omni_notes"
             testCoverageEnabled true
         }
         release {
@@ -104,7 +104,7 @@ android {
         }
         alpha {
             dimension "standard"
-            applicationIdSuffix ".alpha"
+            applicationIdSuffix ".omni_notes"
         }
     }
 
